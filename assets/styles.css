@@ -91,8 +91,10 @@ hr { border-color: var(--border-soft) !important; }
 
 /* ---- widżety ---- */
 label[data-testid="stWidgetLabel"] p, [data-testid="stWidgetLabel"] p { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
-[data-testid="stTabs"] [role="tablist"] { gap: 0.2rem; border-bottom: 1px solid var(--border-soft); }
-[data-testid="stTabs"] button[role="tab"] { padding: 0.55rem 0.9rem; font-weight: 500; }
+[data-testid="stTabs"] [role="tablist"] { gap: 0.55rem; border-bottom: 1px solid var(--border-soft); }
+[data-testid="stTabs"] button[role="tab"] {
+  padding: 0.55rem 0.9rem; font-weight: 500; flex: 0 0 auto; white-space: nowrap;
+}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"] { color: var(--teal); }
 .stButton > button, .stDownloadButton > button { border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); }
 .stButton > button:hover { border-color: var(--teal); color: var(--teal); }
