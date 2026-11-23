@@ -5,7 +5,8 @@ Cały interfejs jest po polsku. Źródłem wzorcowym jest GIOŚ – Państwowy M
 (<https://powietrze.gios.gov.pl/pjp/archives>, <https://powietrze.gios.gov.pl/pjp/content/api>).
 
 > **Stan: Część 1.** Gotowe: układ i nawigacja, wczytywanie i walidacja danych, Panel główny, Analiza czasowa
-> (w tym porównanie lat i sezony), Analiza przestrzenna (mapa stacji), Eksploracja danych, Źródło danych i import.
+> (w tym porównanie lat i sezony), Analiza przestrzenna (mapa stacji), Eksploracja danych, Źródło danych i import
+> oraz osobna analiza skoroszytu rocznych statystyk GIOŚ.
 > Zapowiedziane na Część 2: Analiza korelacji oraz PCA + klasteryzacja (strony pokazują opis zakresu, bez wyników „na pokaz”).
 
 ## Uruchomienie na Windows (VS Code + wirtualne środowisko)
@@ -38,6 +39,7 @@ modules/
   utils.py              formatowanie po polsku, normalizacja tekstu, kolory poziomów
   data_processing.py    czyszczenie: daty, separatory, braki, duplikaty, jednostki, raport walidacji
   data_loader.py        odczyt CSV/XLSX/ZIP GIOŚ, wykrywanie mapowania, Dataset, adapter API (szkielet)
+  gios_statistics.py   parser osobnego skoroszytu rocznych statystyk GIOŚ
   demo_data.py          generator DEMONSTRACYJNYCH DANYCH SYNTETYCZNYCH
   analysis.py           agregacje z kontrolą pokrycia, KPI, zestawienia roczne/miesięczne/sezonowe (bez Streamlit)
   filters.py            spójne filtry globalne w st.session_state
@@ -77,8 +79,11 @@ Przepływ danych: plik → `read_table` → `detect_mapping` (propozycja) → ma
   `STACJE` i `STANOWISKA` oraz wskaźniki do wczytania. Parser obsługuje serie PM10, PM2.5, NO2, SO2, O3,
   CO i C6H6; pozostałe kody są raportowane, a nie mapowane na podobnie nazwane zanieczyszczenia.
   Czas pomiarów zostaje taki, jak zapisano w archiwum GIOŚ (CET); nie jest sztucznie przesuwany.
-- Skoroszyt `Statystyki z lat 2000-2025` zawiera roczne agregaty i nie jest łączony z godzinowymi ani
-  dobowymi szeregami pomiarowymi.
+- Skoroszyt `Statystyki z lat 2000-2025` wczytuje się osobno na stronie **Statystyki roczne GIOŚ**.
+  Arkusze wskaźników są traktowane jako gotowe statystyki roczne per stacja; dane nie są zamieniane na pomiary
+  ani łączone z aktywnym `Dataset`. Można wybrać wskaźnik, statystykę, źródłowy czas uśredniania i stację lub
+  województwo. Średnia dla wielu stacji jest nieważoną średnią arytmetyczną wartości dostępnych stacji, a nie
+  oficjalną średnią krajową; skład sieci może zmieniać się między latami.
 - **Adapter GIOŚ API** (`GiosApiAdapter`) jest szkieletem – celowo niezaimplementowanym.
 
 ## Ograniczenia tej wersji

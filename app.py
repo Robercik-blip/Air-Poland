@@ -33,6 +33,7 @@ def main() -> None:
         st.Page("views/correlation.py", title="Analiza korelacji", icon=":material/grid_on:", url_path="korelacja"),
         st.Page("views/multivariate_analysis.py", title="Analiza wielowymiarowa", icon=":material/bubble_chart:", url_path="wielowymiarowa"),
         st.Page("views/data_explorer.py", title="Eksploracja danych", icon=":material/table_chart:", url_path="dane"),
+        st.Page("views/annual_statistics.py", title="Statystyki roczne GIOŚ", icon=":material/monitoring:", url_path="statystyki-roczne"),
         st.Page("views/data_import.py", title="Źródło danych i import", icon=":material/upload_file:", url_path="import"),
     ]
     navigation = st.navigation(pages, position="sidebar")
