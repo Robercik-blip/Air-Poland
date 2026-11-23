@@ -143,7 +143,7 @@ def render_filter_bar(ds: Dataset, *, multi_station: bool = True) -> FilterState
             c4.selectbox(
                 "Czas uśredniania danych", averaging_opts, index=averaging_opts.index(state["flt_averaging"]),
                 key="w_averaging", on_change=_sync, args=("w_averaging", "flt_averaging"),
-                help="Ten wskaźnik występuje w kilku rozdzielczościach. Nie łączymy ich w jednej serii.",
+                help="Ten wskaźnik występuje w kilku rozdzielczościach. Każdą analizuję osobno, nie łączę ich w jednej serii.",
             )
         else:
             c4.markdown(
