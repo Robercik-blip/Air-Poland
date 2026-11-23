@@ -156,7 +156,7 @@ def rolling_mean(wide: pd.DataFrame, window: int) -> pd.DataFrame:
 def network_mean(agg: pd.DataFrame) -> pd.DataFrame:
     """Średnia z wiarygodnych wartości stacji w każdym okresie (+ min, max, liczba stacji).
 
-    Najpierw liczymy średnie dla stacji, potem średnią ze stacji - dzięki temu stacja z większą
+    Najpierw wyliczam średnie dla stacji, potem średnią ze stacji - dzięki temu stacja z większą
     liczbą pomiarów nie dominuje wyniku.
     """
     ok = agg[agg["reliable"]]
@@ -218,7 +218,7 @@ def pollutant_overview(
     """Przegląd wszystkich wskaźników w zbiorze dla wybranych stacji i zakresu dat.
 
     Dla każdego wskaźnika używany jest jego domyślny (najkrótszy) czas uśredniania.
-    Wartości różnych wskaźników mają różne jednostki - nie porównujemy ich bezpośrednio.
+    Wartości różnych wskaźników mają różne jednostki - nie zestawiam ich bezpośrednio.
     """
     ts = meas["timestamp"]
     mask = meas["station_code"].isin(stations)

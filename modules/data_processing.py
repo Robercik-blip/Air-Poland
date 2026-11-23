@@ -200,7 +200,7 @@ def parse_datetime(series: pd.Series) -> tuple[pd.Series, list[str]]:
       każdej wartości osobno, zwłaszcza dla DD.MM vs MM.DD);
     * rozpoznaje zapis godziny "24:00" jako północ następnego dnia;
     * znaczniki ze strefą czasową są przeliczane na czas Europe/Warsaw i zapisywane
-      bez strefy; znaczniki bez strefy pozostają bez zmian (nie zakładamy strefy).
+      bez strefy; znacznikom bez strefy nie przypisuję strefy czasowej.
 
     Zwraca (znaczniki czasu datetime64[ns], lista notatek dla raportu).
     """

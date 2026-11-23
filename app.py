@@ -2,8 +2,8 @@
 
 Uruchomienie:  streamlit run app.py
 
-Nawigacja jest zbudowana przez st.navigation (zamiast automatycznego katalogu pages/),
-dzięki czemu mamy pełną kontrolę nad kolejnością, ikonami i polskimi nazwami stron.
+Nawigację zbudowałem przez st.navigation (zamiast automatycznego katalogu pages/),
+dzięki czemu sam kontroluję kolejność, ikony i polskie nazwy stron.
 Widoki znajdują się w katalogu views/.
 """
 from __future__ import annotations

@@ -280,8 +280,8 @@ czas i wartości. Dane są wczytywane w czasie lokalnym podanym przez GIOŚ (CET
 2. *Kolumny wskaźników* – jeden wiersz = czas + stacja, osobna kolumna na każde zanieczyszczenie.
 3. *Kolumny stacji* – jeden wiersz = czas, osobna kolumna na każdą stację (plik dotyczy jednego wskaźnika).
 
-**Co aplikacja robi z danymi:** rozpoznaje separator i kodowanie, formaty dat i separator dziesiętny (przecinek/kropka),
-usuwa duplikaty, traktuje braki jako brak danych (nigdy jako zero) i raportuje każdą ingerencję.
+**Import przygotowałem tak, aby** rozpoznawał separator i kodowanie, format daty i separator dziesiętny
+(przecinek/kropka), usuwał duplikaty, zachowywał braki jako braki (nigdy jako zera) i raportował zmiany w danych.
 
 **Aby wiarygodnie obsłużyć archiwum GIOŚ** potrzebne są próbki rzeczywistych plików – bez nich nie zgadujemy ich schematu:
 - 1–2 pliki pomiarowe z archiwum (np. jeden wskaźnik, jeden rok), z nagłówkiem i pierwszymi wierszami,

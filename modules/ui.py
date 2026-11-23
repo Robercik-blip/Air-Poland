@@ -104,6 +104,6 @@ def render_sidebar(ds: Dataset, container=None) -> None:
             '<div class="ap-side-foot">Wzorcowe źródło danych:<br>'
             f"{html.escape(SOURCE_GIOS_NAME)}<br>"
             f'<a href="{SOURCE_GIOS_ARCHIVES}" target="_blank" style="color:#2dd4bf">powietrze.gios.gov.pl</a><br><br>'
-            "Projekt inżynierski · AGH Kraków</div>",
+            "Aplikację opracowałem w ramach projektu inżynierskiego na AGH w Krakowie.</div>",
             unsafe_allow_html=True,
         )

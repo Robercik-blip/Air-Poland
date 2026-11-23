@@ -1,7 +1,8 @@
 # AIR POLAND – interaktywna analityka jakości powietrza w Polsce
 
-Aplikacja Streamlit do analizy i wizualizacji danych o jakości powietrza (projekt inżynierski, AGH Kraków).
-Cały interfejs jest po polsku. Źródłem wzorcowym jest GIOŚ – Państwowy Monitoring Środowiska
+Aplikację AIR POLAND opracowałem z użyciem Streamlit w ramach projektu inżynierskiego na AGH w Krakowie.
+Służy do analizy i wizualizacji danych o jakości powietrza; cały interfejs przygotowałem po polsku.
+Jako wzorcowe źródło danych przyjąłem GIOŚ – Państwowy Monitoring Środowiska
 (<https://powietrze.gios.gov.pl/pjp/archives>, <https://powietrze.gios.gov.pl/pjp/content/api>).
 
 > **Stan: Część 2 (w trakcie).** Gotowe: układ i nawigacja, wczytywanie i walidacja danych, Panel główny,
