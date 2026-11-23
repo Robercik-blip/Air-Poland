@@ -4,10 +4,9 @@ Aplikacja Streamlit do analizy i wizualizacji danych o jakości powietrza (proje
 Cały interfejs jest po polsku. Źródłem wzorcowym jest GIOŚ – Państwowy Monitoring Środowiska
 (<https://powietrze.gios.gov.pl/pjp/archives>, <https://powietrze.gios.gov.pl/pjp/content/api>).
 
-> **Stan: Część 1.** Gotowe: układ i nawigacja, wczytywanie i walidacja danych, Panel główny, Analiza czasowa
-> (w tym porównanie lat i sezony), Analiza przestrzenna (mapa stacji), Eksploracja danych, Źródło danych i import
-> oraz osobna analiza skoroszytu rocznych statystyk GIOŚ.
-> Zapowiedziane na Część 2: Analiza korelacji oraz PCA + klasteryzacja (strony pokazują opis zakresu, bez wyników „na pokaz”).
+> **Stan: Część 2 (w trakcie).** Gotowe: układ i nawigacja, wczytywanie i walidacja danych, Panel główny,
+> Analiza czasowa, Analiza przestrzenna (w tym względna skala zielony–czerwony na mapie), Eksploracja danych,
+> import GIOŚ, statystyki roczne GIOŚ, analiza korelacji oraz PCA i klasteryzacja.
 
 ## Uruchomienie na Windows (VS Code + wirtualne środowisko)
 
@@ -42,6 +41,7 @@ modules/
   gios_statistics.py   parser osobnego skoroszytu rocznych statystyk GIOŚ
   demo_data.py          generator DEMONSTRACYJNYCH DANYCH SYNTETYCZNYCH
   analysis.py           agregacje z kontrolą pokrycia, KPI, zestawienia roczne/miesięczne/sezonowe (bez Streamlit)
+  advanced_analysis.py  przygotowanie macierzy, korelacje, PCA i klasteryzacja (bez Streamlit)
   filters.py            spójne filtry globalne w st.session_state
   services.py           pamięć podręczna (st.cache_data / cache_resource)
   visualizations.py     wykresy Plotly w jednolitym ciemnym stylu
@@ -89,5 +89,7 @@ Przepływ danych: plik → `read_table` → `detect_mapping` (propozycja) → ma
 ## Ograniczenia tej wersji
 
 - Brak wizualizacji choropletycznej (wymaga zewnętrznego pliku z granicami województw).
+- Korelacje, PCA i klasteryzacja są metodami eksploracyjnymi; ich wyniki zależą od zakresu, braków danych,
+  wybranych wskaźników i przyjętej metody.
 - Mapa nie była testowana wizualnie w środowisku bez dostępu do internetu; pozostałe strony przeszły testy renderowania.
 - Konwencja czasu (np. 24:00 jako północ następnego dnia) jest obsłużona, ale strefa czasowa danych nie jest przeliczana.

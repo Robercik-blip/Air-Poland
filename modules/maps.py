@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import html
+from typing import Literal
 
 import folium
+import numpy as np
 import pandas as pd
+from branca.colormap import LinearColormap
 
 from modules.config import COLORS, LEVEL_COLORS, LEVEL_LABELS
 from modules.utils import classify_level, fmt_number, fmt_percent, level_color, pollutant_label
@@ -25,19 +28,37 @@ def stations_with_values(
 
 
 def build_station_map(
-    data: pd.DataFrame, *, pollutant: str, unit: str, height_hint: int = 380
+    data: pd.DataFrame, *, pollutant: str, unit: str, color_mode: Literal["levels", "gradient"] = "levels"
 ) -> tuple[folium.Map | None, int]:
-    """Buduje mapę stacji z okręgami kolorowanymi wg średniego stężenia.
+    """Buduje mapę stacji z kolorami poziomów odniesienia albo ciągłym gradientem.
 
     Args:
         data: wynik ``stations_with_values`` (kolumny: station_code, label, latitude, longitude,
             mean, max, n, completeness, city, voivodeship).
+        color_mode: ``levels`` - progi WHO/UE; ``gradient`` - względna skala wartości stacji.
     Returns:
         (mapa lub None gdy brak stacji ze współrzędnymi, liczba stacji bez współrzędnych)
     """
+    if color_mode not in {"levels", "gradient"}:
+        raise ValueError(f"Nieznany tryb kolorowania mapy: {color_mode}")
     has_coords = data["latitude"].notna() & data["longitude"].notna()
     missing = int((~has_coords).sum())
-    pts = data[has_coords]
+    pts = data.loc[has_coords].copy()
+    color_scale = None
+    if color_mode == "gradient":
+        pts["mean"] = pd.to_numeric(pts["mean"], errors="coerce")
+        pts = pts.loc[np.isfinite(pts["mean"])].copy()
+        if not pts.empty:
+            low, high = float(pts["mean"].min()), float(pts["mean"].max())
+            if low == high:
+                low, high = low - 0.5, high + 0.5
+            caption = html.escape(f"Średnie stężenie [{unit}] · skala względna") if unit else "Średnie stężenie · skala względna"
+            color_scale = LinearColormap(
+                colors=["#22c55e", "#facc15", "#ef4444"],
+                vmin=low,
+                vmax=high,
+                caption=caption,
+            )
     if pts.empty:
         return None, missing
 
@@ -47,7 +68,7 @@ def build_station_map(
                      max_zoom=19).add_to(fmap)
     unit_txt = f" {unit}" if unit else ""
     for _, row in pts.iterrows():
-        color = level_color(row["mean"], pollutant)
+        color = color_scale(float(row["mean"])) if color_scale else level_color(row["mean"], pollutant)
         popup_html = (
             f"<div style='font-family:Segoe UI,Arial,sans-serif;font-size:12.5px;min-width:190px'>"
             f"<b>{html.escape(str(row['label']))}</b><br>"
@@ -75,17 +96,20 @@ def build_station_map(
         fmap.location = (south, west)
         fmap.options["zoom"] = 9
 
-    present = {classify_level(v, pollutant) for v in pts["mean"]}
-    items = "".join(
-        f"<div><span style='display:inline-block;width:10px;height:10px;border-radius:50%;"
-        f"background:{LEVEL_COLORS[k]};margin-right:6px'></span>{LEVEL_LABELS[k]}</div>"
-        for k in ("ok", "elevated", "high", "unknown") if k in present
-    )
-    legend = (
-        "<div style='position:fixed;bottom:22px;left:12px;z-index:9999;background:rgba(19,25,32,0.92);"
-        f"border:1px solid {COLORS['border']};border-radius:8px;padding:8px 10px;color:#e6edf3;"
-        "font-family:Segoe UI,Arial,sans-serif;font-size:11.5px;line-height:1.55'>"
-        "<b>Średnie stężenie</b>" + items + "</div>"
-    )
-    fmap.get_root().html.add_child(folium.Element(legend))
+    if color_scale:
+        color_scale.add_to(fmap)
+    else:
+        present = {classify_level(v, pollutant) for v in pts["mean"]}
+        items = "".join(
+            f"<div><span style='display:inline-block;width:10px;height:10px;border-radius:50%;"
+            f"background:{LEVEL_COLORS[k]};margin-right:6px'></span>{LEVEL_LABELS[k]}</div>"
+            for k in ("ok", "elevated", "high", "unknown") if k in present
+        )
+        legend = (
+            "<div style='position:fixed;bottom:22px;left:12px;z-index:9999;background:rgba(19,25,32,0.92);"
+            f"border:1px solid {COLORS['border']};border-radius:8px;padding:8px 10px;color:#e6edf3;"
+            "font-family:Segoe UI,Arial,sans-serif;font-size:11.5px;line-height:1.55'>"
+            "<b>Średnie stężenie</b>" + items + "</div>"
+        )
+        fmap.get_root().html.add_child(folium.Element(legend))
     return fmap, missing
