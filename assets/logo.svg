@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 44" width="230" height="44">
+  <g fill="none" stroke="#2dd4bf" stroke-width="2.2" stroke-linecap="round">
+    <path d="M6 16 H24 a4.5 4.5 0 1 0 -4.5 -4.5"/>
+    <path d="M6 24 H31 a4.5 4.5 0 1 1 -4.5 4.5" stroke="#38bdf8"/>
+    <path d="M6 32 H17" stroke="#34d399"/>
+  </g>
+  <text x="46" y="29" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="3.2" fill="#e6edf3">AIR <tspan fill="#2dd4bf">POLAND</tspan></text>
+</svg>
