@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import sys
+import zipfile
+from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -11,7 +14,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from modules import analysis
-from modules.data_loader import build_dataset, build_demo_dataset, detect_mapping, read_table
+from modules.data_loader import (
+    SOURCE_GIOS_ARCHIVE, build_dataset, build_demo_dataset, build_gios_archive_dataset, detect_mapping, read_table,
+)
 from modules.data_processing import (
     ColumnMapping, DataFormatError, normalise_averaging_label, normalise_pollutant_name,
     parse_datetime, parse_numeric,
@@ -151,3 +156,143 @@ def test_station_metadata_wgs84_column_names():
         "Kod stacji": ["A1"], "Nazwa stacji": ["Test"], "WGS84 φ N": ["50,0575"], "WGS84 λ E": ["19,9262"],
     }))
     assert meta.loc[0, "latitude"] == "50,0575" and meta.loc[0, "longitude"] == "19,9262"
+
+
+def _make_gios_xlsx(
+    pollutant: str,
+    station_codes: list[str],
+    position_codes: list[str],
+    values: list[tuple[object, ...]],
+    *,
+    averaging: str = "1g",
+    unit: str = "ug/m3",
+) -> bytes:
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "2025_series"
+    sheet.append(["Nr", *range(1, len(station_codes) + 1)])
+    sheet.append(["Kod stacji", *station_codes])
+    sheet.append(["Wskaźnik", *([pollutant] * len(station_codes))])
+    sheet.append(["Czas uśredniania", *([averaging] * len(station_codes))])
+    sheet.append(["Jednostka", *([unit] * len(station_codes))])
+    sheet.append(["Kod stanowiska", *position_codes])
+    for row in values:
+        sheet.append(list(row))
+    result = BytesIO()
+    workbook.save(result)
+    return result.getvalue()
+
+
+def _make_gios_metadata_xlsx() -> bytes:
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    stations = workbook.active
+    stations.title = "STACJE"
+    stations.append([
+        "Nr", "Kod stacji", "Nazwa stacji", "Miejscowość", "Województwo",
+        "WGS84 φ N", "WGS84 λ E", "Stary Kod stacji (o ile inny od aktualnego)",
+    ])
+    stations.append([1, "A1", "Stacja A1", "Kraków", "MAŁOPOLSKIE", "50.0575", "19.9262", "A1-OLD"])
+    stations.append([2, "A2", "Stacja A2", "Warszawa", "MAZOWIECKIE", "52.22", "21.01", None])
+    positions = workbook.create_sheet("STANOWISKA")
+    positions.append(["Nr", "Kod stanowiska", "Kod stacji", "Wskaźnik - kod", "Wskaźnik", "Czas uśredniania"])
+    positions.append([1, "A1-PM10-1g", "A1", "PM10", "pył PM10", "1-godzinny"])
+    positions.append([2, "A2-PM10-1g", "A2", "PM10", "pył PM10", "1-godzinny"])
+    positions.append([3, "A1-OLD-PM10-1g", "A1-OLD", "PM10", "pył PM10", "1-godzinny"])
+    result = BytesIO()
+    workbook.save(result)
+    return result.getvalue()
+
+
+def _make_gios_deposition_xlsx() -> bytes:
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.cell(row=3, column=1, value="Wskaźnik")
+    sheet.cell(row=3, column=2, value="As(cdepoz)")
+    sheet.cell(row=6, column=1, value="Data od")
+    result = BytesIO()
+    workbook.save(result)
+    return result.getvalue()
+
+
+def test_gios_archive_builds_long_dataset_and_joins_station_metadata():
+    measured = _make_gios_xlsx(
+        "PM10",
+        ["A1", "A2"],
+        ["A1-PM10-1g", "A2-PM10-1g"],
+        [
+            (datetime(2025, 1, 1, 1), 10.0, None),
+            (datetime(2025, 1, 1, 2), 12.0, 4.0),
+        ],
+    )
+    unsupported = _make_gios_xlsx(
+        "BaP(PM10)",
+        ["A1"],
+        ["A1-OLD-PM10-1g"],
+        [(datetime(2025, 1, 1), 0.25)],
+        averaging="24g",
+        unit="ng/m3",
+    )
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zipped:
+        zipped.writestr("2025_PM10_1g.xlsx", measured)
+        zipped.writestr("2025_BaP(PM10)_24g.xlsx", unsupported)
+        zipped.writestr("2025_Depozycja_1m.xlsx", _make_gios_deposition_xlsx())
+
+    dataset = build_gios_archive_dataset(
+        [("2025.zip", archive.getvalue())],
+        _make_gios_metadata_xlsx(),
+        name="GIOŚ 2025",
+        selected_pollutants=["PM10"],
+    )
+
+    assert dataset.source_kind == SOURCE_GIOS_ARCHIVE
+    assert len(dataset.measurements) == 3
+    assert set(dataset.measurements["pollutant"].astype(str)) == {"PM10"}
+    assert set(dataset.measurements["averaging"].astype(str)) == {"1h"}
+    assert set(dataset.measurements["unit"].astype(str)) == {"µg/m³"}
+    assert dataset.report.n_missing_value == 1
+    assert dataset.report.values_read == 4
+    station = dataset.stations.set_index("station_code").loc["A1"]
+    assert station["station_name"] == "Stacja A1"
+    assert station["latitude"] == pytest.approx(50.0575)
+    assert station["longitude"] == pytest.approx(19.9262)
+    assert any("BaP(PM10)" in warning for warning in dataset.report.warnings)
+    assert any("As(cdepoz)" in warning for warning in dataset.report.warnings)
+
+
+def test_gios_archive_uses_old_station_code_alias():
+    measured = _make_gios_xlsx(
+        "PM10",
+        ["A1-OLD"],
+        ["A1-OLD-PM10-1g"],
+        [(datetime(2025, 1, 1, 1), 10.0)],
+    )
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zipped:
+        zipped.writestr("2025_PM10_1g.xlsx", measured)
+
+    dataset = build_gios_archive_dataset(
+        [("2025.zip", archive.getvalue())],
+        _make_gios_metadata_xlsx(),
+        name="GIOŚ 2025",
+        selected_pollutants=["PM10"],
+    )
+
+    assert dataset.stations.loc[0, "station_code"] == "A1-OLD"
+    assert dataset.stations.loc[0, "station_name"] == "Stacja A1"
+
+
+def test_gios_archive_rejects_invalid_zip():
+    with pytest.raises(DataFormatError, match="ZIP"):
+        build_gios_archive_dataset(
+            [("bad.zip", b"not a zip")],
+            _make_gios_metadata_xlsx(),
+            name="GIOŚ",
+            selected_pollutants=["PM10"],
+        )

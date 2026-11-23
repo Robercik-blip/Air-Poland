@@ -37,7 +37,7 @@ modules/
   config.py             stałe, metadane wskaźników, poziomy odniesienia, paleta
   utils.py              formatowanie po polsku, normalizacja tekstu, kolory poziomów
   data_processing.py    czyszczenie: daty, separatory, braki, duplikaty, jednostki, raport walidacji
-  data_loader.py        odczyt CSV/XLSX, wykrywanie mapowania kolumn, Dataset, adapter GIOŚ API (szkielet)
+  data_loader.py        odczyt CSV/XLSX/ZIP GIOŚ, wykrywanie mapowania, Dataset, adapter API (szkielet)
   demo_data.py          generator DEMONSTRACYJNYCH DANYCH SYNTETYCZNYCH
   analysis.py           agregacje z kontrolą pokrycia, KPI, zestawienia roczne/miesięczne/sezonowe (bez Streamlit)
   filters.py            spójne filtry globalne w st.session_state
@@ -73,13 +73,13 @@ Przepływ danych: plik → `read_table` → `detect_mapping` (propozycja) → ma
   Współrzędne to środki miast, a nie lokalizacje stacji. Nie wolno prezentować ich jako pomiarów GIOŚ.
 - Własne dane: zakładka **Źródło danych i import** (plik lokalny z `data/raw/` lub wgranie z komputera).
   Obsługiwane układy: format długi, kolumny wskaźników, kolumny stacji. Kodowanie, separator, format dat i separator dziesiętny są wykrywane.
+- Archiwa pomiarowe GIOŚ: wybierz jeden lub kilka rocznych plików ZIP, skoroszyt metadanych z arkuszami
+  `STACJE` i `STANOWISKA` oraz wskaźniki do wczytania. Parser obsługuje serie PM10, PM2.5, NO2, SO2, O3,
+  CO i C6H6; pozostałe kody są raportowane, a nie mapowane na podobnie nazwane zanieczyszczenia.
+  Czas pomiarów zostaje taki, jak zapisano w archiwum GIOŚ (CET); nie jest sztucznie przesuwany.
+- Skoroszyt `Statystyki z lat 2000-2025` zawiera roczne agregaty i nie jest łączony z godzinowymi ani
+  dobowymi szeregami pomiarowymi.
 - **Adapter GIOŚ API** (`GiosApiAdapter`) jest szkieletem – celowo niezaimplementowanym.
-
-### Co jest potrzebne, aby wiarygodnie obsłużyć archiwum GIOŚ
-
-Schematu plików archiwalnych nie zgadujemy. Potrzebne są: (1) 1–2 rzeczywiste pliki pomiarowe z archiwum (nagłówek + pierwsze wiersze),
-(2) plik z kodami stacji/stanowisk i współrzędnymi, (3) informacja o strefie czasowej i konwencji czasu (początek/koniec godziny),
-(4) dla API: aktualna specyfikacja OpenAPI i przykładowe odpowiedzi JSON.
 
 ## Ograniczenia tej wersji
 
