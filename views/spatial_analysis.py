@@ -39,10 +39,21 @@ left, right = st.columns([1.7, 1])
 with left:
     with st.container(border=True):
         ui.section_title(f"Mapa stacji – średnie stężenie {pl}")
-        fmap, missing = maps.build_station_map(merged, pollutant=flt.pollutant, unit=unit)
+        color_choice = st.radio(
+            "Kolorowanie stacji",
+            ["Poziomy odniesienia WHO/UE", "Skala zielony–czerwony"],
+            horizontal=True,
+            key="spatial_color_mode",
+            help="Skala gradientowa jest względna: rozciąga się od najniższej do najwyższej średniej "
+                 "stacji w bieżącym wyborze filtrów.",
+        )
+        color_mode = "gradient" if color_choice == "Skala zielony–czerwony" else "levels"
+        fmap, missing = maps.build_station_map(
+            merged, pollutant=flt.pollutant, unit=unit, color_mode=color_mode
+        )
         if fmap is None:
             ui.callout(
-                "W danych nie ma współrzędnych stacji, więc mapa nie może zostać narysowana. "
+                "Nie znaleziono stacji z poprawnymi współrzędnymi i wartościami, więc mapa nie może zostać narysowana. "
                 "Współrzędnych nie uzupełniamy samodzielnie – wczytaj plik z metadanymi stacji "
                 "(kolumny: kod stacji, szerokość i długość geograficzna) w zakładce „Źródło danych i import”.", "warn",
             )
@@ -51,8 +62,12 @@ with left:
                                returned_objects=["last_object_clicked_tooltip"], key="spatial_map")
             if missing:
                 st.caption(f"{missing} z {len(merged)} stacji nie ma współrzędnych – pominięto na mapie.")
-            ui.source_caption(ds, "Kolor = średnia z pomiarów w wybranym okresie względem poziomów odniesienia. "
-                                  + REFERENCE_NOTE)
+            map_note = (
+                "Kolor = średnie stężenie względem minimum i maksimum stacji widocznych po zastosowaniu filtrów."
+                if color_mode == "gradient"
+                else "Kolor = średnia z pomiarów w wybranym okresie względem poziomów odniesienia. " + REFERENCE_NOTE
+            )
+            ui.source_caption(ds, map_note)
 
 with right:
     with st.container(border=True):
