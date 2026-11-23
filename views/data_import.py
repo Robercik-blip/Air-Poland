@@ -11,8 +11,8 @@ from modules.config import (
     DEMO_LABEL, POLLUTANT_ORDER, RAW_DATA_DIR, SOURCE_GIOS_API, SOURCE_GIOS_ARCHIVES, SOURCE_GIOS_NAME,
 )
 from modules.data_loader import (
-    SOURCE_DEMO, SOURCE_LABELS, SOURCE_LOCAL, SOURCE_UPLOAD, build_dataset, detect_mapping,
-    list_local_files, parse_station_metadata, read_table,
+    SOURCE_DEMO, SOURCE_LABELS, SOURCE_LOCAL, SOURCE_UPLOAD, build_dataset, build_gios_archive_dataset,
+    detect_mapping, list_local_files, parse_station_metadata, read_table,
 )
 from modules.data_processing import (
     LAYOUT_LABELS, LAYOUT_LONG, LAYOUT_POLLUTANT_COLUMNS, LAYOUT_STATION_COLUMNS, ColumnMapping, DataFormatError,
@@ -26,8 +26,8 @@ NONE = "— brak —"
 ds = services.current_dataset()
 ui.page_header(
     "Źródło danych i import",
-    "Wczytaj własne pliki CSV lub XLSX (np. z archiwum GIOŚ), wskaż znaczenie kolumn i sprawdź raport walidacji. "
-    "Struktura plików nie jest zakładana – aplikacja proponuje mapowanie, a Ty je potwierdzasz.",
+    "Wczytaj pliki CSV/XLSX lub roczne archiwum ZIP GIOŚ i sprawdź raport walidacji. "
+    "Dla CSV/XLSX aplikacja proponuje mapowanie kolumn; archiwa GIOŚ mają osobny parser.",
     ds,
 )
 flash = st.session_state.pop("import_flash", None)
@@ -55,7 +55,8 @@ tab_load, tab_report, tab_help = st.tabs(["Wczytaj dane", "Raport walidacji", "F
 # --- Wczytywanie ----------------------------------------------------------------------
 with tab_load:
     mode = st.radio(
-        "Źródło danych", ["Dane demonstracyjne", "Plik lokalny (data/raw)", "Wgraj plik z komputera"],
+        "Źródło danych",
+        ["Dane demonstracyjne", "Plik lokalny (data/raw)", "Wgraj plik z komputera", "Archiwum ZIP GIOŚ"],
         horizontal=True, key="imp_mode",
     )
 
@@ -67,6 +68,64 @@ with tab_load:
             reset_filters()
             st.session_state["import_flash"] = "Aktywny zbiór: dane demonstracyjne."
             st.rerun()
+        st.stop()
+
+    if mode == "Archiwum ZIP GIOŚ":
+        archive_files = st.file_uploader(
+            "Roczne archiwa pomiarowe GIOŚ (.zip; można wybrać kilka lat)",
+            type=["zip"], accept_multiple_files=True, key="imp_gios_archives",
+        )
+        metadata_file = st.file_uploader(
+            "Metadane GIOŚ (.xlsx; arkusze STACJE i STANOWISKA)",
+            type=["xlsx"], key="imp_gios_metadata",
+        )
+        primary_pollutants = ["PM10", "PM2.5", "NO2", "O3"]
+        selected_pollutants = st.multiselect(
+            "Wskaźniki do wczytania",
+            POLLUTANT_ORDER,
+            default=primary_pollutants,
+            format_func=pollutant_label,
+            key="imp_gios_pollutants",
+            help="Wczytuj tylko potrzebne wskaźniki, aby ograniczyć zużycie pamięci przy wielu latach.",
+        )
+        name = st.text_input(
+            "Nazwa zbioru",
+            value=", ".join(f.name for f in archive_files or [])[:80] or "Archiwum GIOŚ",
+            key="imp_gios_name",
+        )
+        negative_policy = st.radio(
+            "Wartości ujemne",
+            ["Traktuj jako brak danych", "Zachowaj bez zmian"],
+            horizontal=True,
+            key="imp_gios_negative",
+            help="Domyślnie ujemne stężenia są oznaczane jako brak danych.",
+        )
+        if st.button(
+            "Wczytaj archiwum i zwaliduj dane",
+            type="primary",
+            key="imp_gios_go",
+            disabled=not archive_files or metadata_file is None or not selected_pollutants,
+        ):
+            try:
+                with st.spinner("Odczytuję archiwa GIOŚ i waliduję pomiary…"):
+                    new = build_gios_archive_dataset(
+                        [(file.name, file.getvalue()) for file in archive_files],
+                        metadata_file.getvalue(),
+                        name=name or "Archiwum GIOŚ",
+                        selected_pollutants=selected_pollutants,
+                        negative_policy="nan" if negative_policy.startswith("Traktuj") else "keep",
+                    )
+            except DataFormatError as exc:
+                logger.warning("Błąd importu archiwum GIOŚ: %s", exc)
+                st.error(str(exc))
+            else:
+                st.session_state["dataset"] = new
+                reset_filters()
+                st.session_state["import_flash"] = (
+                    f"Wczytano zbiór „{new.name}”: {fmt_int(len(new.measurements))} pomiarów, "
+                    f"{fmt_int(new.catalog['station_code'].nunique())} stacji."
+                )
+                st.rerun()
         st.stop()
 
     files: list[tuple[str, bytes]] = []
@@ -211,6 +270,10 @@ with tab_help:
         f"""
 **Źródło wzorcowe:** {SOURCE_GIOS_NAME}
 Archiwum: {SOURCE_GIOS_ARCHIVES} · API: {SOURCE_GIOS_API}
+
+**Roczne archiwum GIOŚ:** wybierz pliki ZIP z wynikami pomiarów oraz skoroszyt metadanych zawierający arkusze
+STACJE i STANOWISKA. W arkuszach pomiarowych pierwsze sześć wierszy opisuje serie; kolejne wiersze zawierają
+czas i wartości. Dane są wczytywane w czasie lokalnym podanym przez GIOŚ (CET) bez sztucznego przesunięcia.
 
 **Obsługiwane układy plików** (wykrywane automatycznie, do ręcznej korekty):
 1. *Format długi* – kolumny: czas, stacja, wskaźnik, wartość.
